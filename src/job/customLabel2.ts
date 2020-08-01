@@ -3,7 +3,7 @@ import { DoaspasBuildJob,DoaspasShared } from '../lib/analyze_definition';
 import { IFSAJ_Release_Component__c, IFViolation } from '../lib/analyze_object_definition'
 import { IFJob } from '../lib/analyze_object_definition';
 import JobResultTemplate2 from '../lib/analyze_result_template2';
-import { getSubsetCompOnDir } from "../lib/analyze_util";
+import { getSubsetCompOnDir,prepareMessage } from "../lib/analyze_util";
 
 class ResultMap {
     compName: string;
@@ -25,6 +25,8 @@ export default class customLabel2 extends DoaspasBuildJob {
     public async run(): Promise<JobResultTemplate2> {
         //console.log('\n'+JSON.stringify(DoaspasXPathShared.localFiles));
         console.log ('JOB ID:' + this.ref);
+        //let mySettingData = settingsJsonObj.AllSettings;
+        //console.log(settingsJsonObj.MetaDataInfo.settingsData);
         //console.log('XPath: '+this.field.XPath);
 
         this.result = new JobResultTemplate2(this);
@@ -57,7 +59,7 @@ export default class customLabel2 extends DoaspasBuildJob {
             this.result.summary.message = (e as Error).message;
         }
         // ### Store the results on App Central
-        await this.result.Process();
+        //await this.result.Process();
 
         return this.result;
     }
@@ -84,7 +86,7 @@ export default class customLabel2 extends DoaspasBuildJob {
                     let message='';
                     console.log(violationResults.length);
                     if(violationResults.length==1){
-                        message = 'Name Matched with Label';
+                        /* message = 'Name Matched with Label';
                         console.log(message);
                         console.log(comp.Name.split('/')[1].split('.')[0]);
                         console.log(violationResults[0].nodeEntry.firstChild.nodeValue)
@@ -96,17 +98,19 @@ export default class customLabel2 extends DoaspasBuildJob {
                             console.log(message);
                             let resultVal: ResultMap = {compName:comp.Name, compId:comp.Id, violations:message, isPass:false,severity:4};
                             results.push(resultVal);
-                        }
-                        
+                        } */
+                        message = JSON.stringify(prepareMessage(false,'NA'));
+                        let resultVal: ResultMap = {compName:comp.Name, compId:comp.Id, violations:message, isPass:true,severity:null};
+                        results.push(resultVal);
                     }
                     if(violationResults.length > 1) {
-                        message = 'More Than one custom Label entries';
+                        message = JSON.stringify(prepareMessage(false,'More Than one custom Label entries'));
                         console.log(message);
                         let resultVal: ResultMap = {compName:comp.Name, compId:comp.Id, violations:message, isPass:false,severity:5};
                         results.push(resultVal);
                     }
                     if(violationResults.length == 0) {
-                        message = 'No entries found';
+                        message = JSON.stringify(prepareMessage(false,'No entries found'));
                         console.log(message);
                         let resultVal: ResultMap = {compName:comp.Name, compId:comp.Id, violations:message, isPass:false,severity:5};
                         results.push(resultVal);

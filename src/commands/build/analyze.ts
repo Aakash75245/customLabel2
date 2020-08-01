@@ -61,7 +61,7 @@ export default class Analyze extends SfdxCommand {
 
     const appId = DoaspasShared.build.SAJ_Application__c;
     this.ux.log ('FETCH EXCEPTIONS: ' + await shared.LoadExceptions(appId,this.flags.name));
-    this.ux.log ('LOAD LOCAL FILES: '+await shared.LoadLocalFiles(['permissionsets', 'objects']));
+    this.ux.log ('LOAD LOCAL FILES: '+await shared.LoadLocalFiles(['permissionsets', 'objects','labels']));
 
     this.ux.log ('DOASPAS RunMode: ' + DoaspasShared.runMode);
     

@@ -1,8 +1,9 @@
 import { Connection } from '@salesforce/core';
 import { DoaspasBuildJob,DoaspasShared } from '../lib/analyze_definition';
-import { var_slash,prepareMessage,convertJSONToMap,prepareJSONMessage,convertToJSONString, LookForException } from '../lib/analyze_util';
+import { prepareMessage,convertJSONToMap,prepareJSONMessage,convertToJSONString, LookForException } from '../lib/analyze_util';
 import { IFJob } from '../lib/analyze_object_definition';
 import JobResultTemplate2 from '../lib/analyze_result_template2';
+import * as ConfigData from "../data/AllJobConfigData.json"
 
 export default class CommonObject extends DoaspasBuildJob {
     public static runLocal: boolean = true;
@@ -69,8 +70,8 @@ export default class CommonObject extends DoaspasBuildJob {
 //Common Object Function
 export function runCommonObjectJob(jobName): any {
     try{
-        
-        let typeToCompare = var_slash+'objects'+var_slash;
+        let var_slash = ConfigData.VAR_SLASH;
+        let typeToCompare = 'objects'+var_slash;
         DoaspasShared.mapOfNotValidComponentList.clear(); 
         DoaspasShared.mapOfValidComponentsList.clear();
 

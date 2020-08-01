@@ -1,9 +1,11 @@
 import { Connection } from '@salesforce/core';
 import { DoaspasBuildJob,DoaspasShared } from '../lib/analyze_definition';
-import { LookForException,var_slash,prepareMessage,convertJSONToMap,prepareJSONMessage,convertToJSONString } from '../lib/analyze_util';
+import { LookForException,prepareMessage,convertJSONToMap,prepareJSONMessage,convertToJSONString } from '../lib/analyze_util';
 import { IFJob } from '../lib/analyze_object_definition';
 import JobResultTemplate2 from '../lib/analyze_result_template2';
-
+import * as settingsConfigData from "../data/SettingsCheck.json";
+import * as AllJobConfigData from "../data/AllJobConfigData.json"
+//import * as settingsJsonObj from "../data/SettingsMappingData.json";
 export default class Settings1 extends DoaspasBuildJob {
     public static runLocal: boolean = true;
     constructor(conn: Connection, job: IFJob)
@@ -19,7 +21,8 @@ export default class Settings1 extends DoaspasBuildJob {
         try {           
             let mapOfValidComp = new Map<String,String>();
             let mapOfNotValidComp = new Map<String,String>();
-
+            //let mySettingData = settingsJsonObj.AllSettings;
+            //console.log(mySettingData);
             // Calling Check Prefix Plugins  
             let resultOfCheckPrefix = await runCommonObjectJob(this.field.AssignmentJobName);                   
 
@@ -69,8 +72,11 @@ export default class Settings1 extends DoaspasBuildJob {
 //Common Object Function
 export function runCommonObjectJob(jobName): any {
     try{
-        
-        let typeToCompare = var_slash+'settings'+var_slash;
+        let var_slash = AllJobConfigData.VAR_SLASH;
+        let typeToCompare = 'settings'+var_slash;
+        let settings = settingsConfigData.MetaDataInfo.settingsData;
+        settings=[];
+        //console.log(settings);
         //Declare Map Variables                
         //let mapOfException = new Map<String,boolean>();
         DoaspasShared.mapOfNotValidComponentList.clear(); 
@@ -82,9 +88,12 @@ export function runCommonObjectJob(jobName): any {
         
         
         DoaspasShared.buildcomp.forEach(componentRecords => { 
-            if(componentRecords.SAJ_Component_Full_Name__c.includes(typeToCompare)){                                
-                let exceptionAvailable:boolean=false;                
-                exceptionAvailable = false;                   
+            if(componentRecords.SAJ_Component_Full_Name__c.includes(typeToCompare)){ 
+                let settingExist = false;
+                settingExist = isSettingAvailable(componentRecords.SAJ_Component_Full_Name__c.split(var_slash)[1]);
+                if(settingExist){
+                    let exceptionAvailable:boolean=false;                
+                    exceptionAvailable = false;                   
                     exceptionAvailable = LookForException(jobName,componentRecords.Name);
                     if(!exceptionAvailable){
                         if(!DoaspasShared.mapOfValidComponentsList.has(componentRecords.Name)){
@@ -94,7 +103,8 @@ export function runCommonObjectJob(jobName): any {
                     }else{
                         let JsonMessage = prepareJSONMessage(jobName,componentRecords.Id,componentRecords.Name,'',` ${componentRecords.Name} has been modified But Exception is Available`,true);                                                     
                         DoaspasShared.mapOfValidComponentsList.set(componentRecords.Name,JsonMessage);
-                    }                                                                       
+                    }
+                }                                                                                      
             }
         });   
         
@@ -110,5 +120,14 @@ export function runCommonObjectJob(jobName): any {
         console.log('No Build Release Records available' + error.message);
     }     
 }
+ function isSettingAvailable(settingName) { 
+     let settings = settingsConfigData.MetaDataInfo.settingsData;
+    for(let i=0;i<settings.length;i++){
+        if(settings[i]==settingName){
+            return true;
+            break;
+        }
+    }    
+ }
 
 

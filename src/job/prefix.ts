@@ -3,8 +3,11 @@ import { DoaspasBuildJob,DoaspasShared } from '../lib/analyze_definition';
 import { IFSAJ_Release__c,IFSAJ_Release_Component__c } from '../lib/analyze_object_definition'
 import {  IFJob } from '../lib/analyze_object_definition';
 import JobResultTemplate2 from '../lib/analyze_result_template2';
-import { LookForException,var_slash,prepareMessage,convertJSONToMap,prepareJSONMessage,convertToJSONString } from '../lib/analyze_util';
-import { baseElement,mappingInfos,mixedComponent,defaultIndex,objectType,checkLastIndex,specialType,excludeComponent } from '../data/indexMappingInfo';
+import { LookForException,prepareMessage,convertJSONToMap,prepareJSONMessage,convertToJSONString } from '../lib/analyze_util';
+//import { baseElement,mappingInfos,mixedComponent,defaultIndex,objectType,checkLastIndex,specialType,excludeComponent } from '../data/indexMappingInfo';
+//import * as configData from "../data/JobConfigData.json";
+import * as prefixRule from "../data/PrefixJson.json"
+import * as ConfigData from "../data/AllJobConfigData.json"
 import { isNullOrUndefined } from 'util';
 
 export default class Prefix extends DoaspasBuildJob {
@@ -16,6 +19,7 @@ export default class Prefix extends DoaspasBuildJob {
     public async run(): Promise<JobResultTemplate2> {
         console.log ('JOB ID:' + this.ref);
         console.log(this.field.AssignmentJobName)
+        //console.log(settingsJsonObj);
         this.result = new JobResultTemplate2(this);
         try {
 
@@ -87,7 +91,8 @@ export default class Prefix extends DoaspasBuildJob {
 
             //Declare Prefix,MappingFile and Exception Variables
             let appPrefixList;                 
-            let mappingFile = mappingInfos[0];                 
+            //let mappingFile = configData.MappingInfo.IndexInfo[0];
+            //console.log(mappingFile['objects'].Index);
             
             //Declare Variable For Indexing and ComponentToCompare 
             let var_Object_Index:number;
@@ -113,16 +118,31 @@ export default class Prefix extends DoaspasBuildJob {
             });
         
             //Iterate all components and get the index infromation 
-            compDetails.forEach(releaseComponentName => {                            
-                const typeOfComponent = releaseComponentName.SAJ_Component_Full_Name__c.split(var_slash)[baseElement];  
-                mapOfBucket = prepareMapOfBuckets();   
+            compDetails.forEach(releaseComponentName => { 
+                //console.log('****************8Working on Component ' + releaseComponentName.Name);                           
+                const typeOfComponent = releaseComponentName.SAJ_Component_Full_Name__c.split(ConfigData.VAR_SLASH)[prefixRule.BaseDirectoryIndex];  
+                mapOfBucket = prepareMapOfBuckets();  
+                //console.log(mapOfBucket); 
                 const compareCompType = mapOfBucket.get(typeOfComponent);
+                //console.log(` ${prefixRule.BaseDirectoryIndex}  ************* JSON DATA FOR : ${compareCompType} IS : `);
+                //let JSONData =  getIndexData(typeOfComponent); 
+                let JSONData : object = getIndexDataAt(prefixRule.IndexInfo, 'type',typeOfComponent);
+                /* if(!isNullOrUndefined(JSONData)){
+                    console.log(`${typeOfComponent} JSON Data is ${JSONData}`);
+                    console.log('Type: '+JSONData['type']);
+                    console.log(JSONData['type']+ ' ComponentIndex: '+JSONData['ComponentIndex']);
+                    console.log(JSONData['type']+ ' StandardObjectIndex: '+JSONData['StandardObjectIndex']);
+                    console.log(JSONData['type']+ ' ChildMetadataIndex: '+JSONData['ChildMetadataIndex']);
+                } */
+                //console.log(JSONData);
                 switch(compareCompType) {                     
-                    case 'objectType': {                    
-                        var_Object_Index = mappingFile[typeOfComponent].index;
-                        var_Component_Index = mappingFile[typeOfComponent].subTypesIndex;
-                        var_Object_To_Compare = releaseComponentName.SAJ_Component_Full_Name__c.split(var_slash)[var_Object_Index];                    
-                        var_Component_To_Compare = releaseComponentName.SAJ_Component_Full_Name__c.split(var_slash)[var_Component_Index];
+                    case 'objectType': {  
+                        // console.log(`JSON Data For ${typeOfComponent} IS : `);
+                        // console.log(JSONData);
+                        var_Object_Index = JSONData['StandardObjectIndex'];
+                        var_Component_Index = JSONData['ChildMetadataIndex'];
+                        var_Object_To_Compare = releaseComponentName.SAJ_Component_Full_Name__c.split(ConfigData.VAR_SLASH)[var_Object_Index];                    
+                        var_Component_To_Compare = releaseComponentName.SAJ_Component_Full_Name__c.split(ConfigData.VAR_SLASH)[var_Component_Index];
                         if(mapOfStandardObjects.has(var_Object_To_Compare)){
                             PrepareValidNotValidCompMap(jobName,var_Component_To_Compare,mapOfAppPrefix,releaseComponentName);
                         }else{
@@ -132,10 +152,12 @@ export default class Prefix extends DoaspasBuildJob {
                     } 
                     case 'mixedComponent': { 
                         //Declare Variable : 
-                        var_Main_Index = mappingFile[typeOfComponent].index;
-                        var_Full_Component_Name = releaseComponentName.SAJ_Component_Full_Name__c.split(var_slash)[var_Main_Index]; 
-                        var_Object_Index =  mappingFile[typeOfComponent].ObjectIndex;
-                        var_Component_Index =  mappingFile[typeOfComponent].ComponentIndex;
+                        // console.log(`JSON Data For ${typeOfComponent} IS : `);
+                        // console.log(JSONData);
+                        var_Main_Index = JSONData['ComponentIndex'];
+                        var_Full_Component_Name = releaseComponentName.SAJ_Component_Full_Name__c.split(ConfigData.VAR_SLASH)[var_Main_Index]; 
+                        var_Object_Index =  JSONData['StandardObjectIndex'];
+                        var_Component_Index =  JSONData['ChildMetadataIndex'];
                         var_Object_To_Compare = var_Full_Component_Name.split('.')[var_Object_Index];
                         var_Component_To_Compare = var_Full_Component_Name.split('.')[var_Component_Index];
                         if(mapOfStandardObjects.has(var_Object_To_Compare)){
@@ -150,7 +172,7 @@ export default class Prefix extends DoaspasBuildJob {
                     }
                     case 'checkLastIndex': { 
                         //statements; 
-                        var_Last_Index_Of = releaseComponentName.SAJ_Component_Full_Name__c.lastIndexOf(var_slash)+1;
+                        var_Last_Index_Of = releaseComponentName.SAJ_Component_Full_Name__c.lastIndexOf(ConfigData.VAR_SLASH)+1;
                         //console.log(releaseComponentName.SAJ_Component_Full_Name__c);
                         var_Length_Of_Component = releaseComponentName.SAJ_Component_Full_Name__c.length; 
                         //console.log('Length is ' + var_Length_Of_Component);                   
@@ -161,17 +183,19 @@ export default class Prefix extends DoaspasBuildJob {
                             var_Component_To_Compare = releaseComponentName.SAJ_Component_Full_Name__c.substr(0,var_Last_Index_Of-1);
                             //console.log(releaseComponentName.SAJ_Component_Full_Name__c);
                             var_Length_Of_Component = var_Component_To_Compare.length;
-                            var_Last_Index_Of = var_Component_To_Compare.lastIndexOf(var_slash)+1;
+                            var_Last_Index_Of = var_Component_To_Compare.lastIndexOf(ConfigData.VAR_SLASH)+1;
                             var_Component_To_Compare = releaseComponentName.SAJ_Component_Full_Name__c.substr(var_Last_Index_Of,var_Length_Of_Component);
                             PrepareValidNotValidCompMap(jobName,var_Component_To_Compare,mapOfAppPrefix,releaseComponentName);
                         }
                         break; 
                     }                 
                     case 'specialType': { 
-                        var_Main_Index = mappingFile[typeOfComponent].index;
-                        var_Full_Component_Name = releaseComponentName.SAJ_Component_Full_Name__c.split(var_slash)[var_Main_Index]; 
-                        var_Object_Index =  mappingFile[typeOfComponent].ObjectIndex;
-                        var_Component_Index =  mappingFile[typeOfComponent].ComponentIndex;
+                        // console.log(`JSON Data For ${typeOfComponent} IS : `);
+                        // console.log(JSONData);
+                        var_Main_Index = JSONData['ComponentIndex'];
+                        var_Full_Component_Name = releaseComponentName.SAJ_Component_Full_Name__c.split(ConfigData.VAR_SLASH)[var_Main_Index]; 
+                        var_Object_Index =  JSONData['StandardObjectIndex'];
+                        var_Component_Index =  JSONData['ChildMetadataIndex'];
                         var_Object_To_Compare = var_Full_Component_Name.split('-')[var_Object_Index];                
                         var_Component_To_Compare = var_Full_Component_Name.split('-')[var_Component_Index];                                    
                         if(mapOfStandardObjects.has(var_Object_To_Compare)){                        
@@ -189,7 +213,7 @@ export default class Prefix extends DoaspasBuildJob {
                         break; 
                     } 
                     default: { 
-                                let compName = releaseComponentName.SAJ_Component_Full_Name__c.split(var_slash)[defaultIndex];
+                                let compName = releaseComponentName.SAJ_Component_Full_Name__c.split(ConfigData.VAR_SLASH)[prefixRule.DefaultComponentIndex];
                                 PrepareValidNotValidCompMap(jobName,compName,mapOfAppPrefix,releaseComponentName);
                         //statements;  
                     break; 
@@ -274,23 +298,23 @@ function PrepareValidNotValidCompMap(jobName,componentName,mapOfAppPrefix,releas
 function prepareMapOfBuckets(){  
     let mapOfBucket = new Map<String,String>();  
     
-    mixedComponent.forEach(compType => {
+    prefixRule.DotNotationComps.forEach(compType => {
         mapOfBucket.set(compType,'mixedComponent')
     });
-    checkLastIndex.forEach(compType => {
+    prefixRule.LastIndexComps.forEach(compType => {
         mapOfBucket.set(compType,'checkLastIndex')
     });    
-    specialType.forEach(compType => {
+    prefixRule.DashNotationComps.forEach(compType => {
         mapOfBucket.set(compType,'specialType')
     });
-    excludeComponent.forEach(compType => {
+    prefixRule.ExcludedComps.forEach(compType => {
         mapOfBucket.set(compType,'excludeComponent')
     });
-    objectType.forEach(compType => {
+    prefixRule.ObjectComps.forEach(compType => {
         mapOfBucket.set(compType,'objectType')
     });
     DoaspasShared.buildcomp.forEach(ReleaseComponent => {
-        let var_compType = ReleaseComponent.SAJ_Component_Full_Name__c.split(var_slash)[baseElement];        
+        let var_compType = ReleaseComponent.SAJ_Component_Full_Name__c.split(ConfigData.VAR_SLASH)[prefixRule.BaseDirectoryIndex];        
         if(!mapOfBucket.has(var_compType)){
             //console.log(`${var_compType} not available in any bucket`);
             mapOfBucket.set(var_compType,'default')
@@ -299,4 +323,16 @@ function prepareMapOfBuckets(){
     return mapOfBucket;
 }
 
+/* function getIndexData(typeToCompare){
+    let prefixJSONData = prefixRule.IndexInfo;
+    for(let i=0;i<prefixJSONData.length;i++){
+        if(prefixJSONData[i].type==typeToCompare){
+            return prefixJSONData[i];
+            break;
+        }
+    }    
+} */
 
+function getIndexDataAt(objs: object[], key: string, value:string): object {
+    return objs.find(function(v){ return v[key] === value});
+    }

@@ -70,7 +70,7 @@ export default class customLabel1 extends DoaspasBuildJob {
 export function runCustomLabelJob(jobName): any {
     try{
         
-        let typeToCompare = '\\labels\\CustomLabels.labels-meta.xml';        
+        let typeToCompare = 'labels/CustomLabels.labels-meta.xml';        
         let JsonMessage='';
         let customLabelAvailable:boolean=false;
         //Declare Map Variables                
